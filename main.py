@@ -17,7 +17,6 @@ from utils import progress_bar
 try:
     import geondpt as gpt
 except ImportError:
-    print('free')
     import geondptfree as gpt
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
