@@ -14,9 +14,16 @@ import argparse
 from models import *
 from utils import progress_bar
 
+try:
+    import geondpt as gpt
+except ImportError:
+    print('free')
+    import geondptfree as gpt
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
+parser.add_argument('--eval', type=str, help='filename to evaluate')
+parser.add_argument('--model', type=str, required=True, help='resnet18')
 parser.add_argument('--resume', '-r', action='store_true',
                     help='resume from checkpoint')
 args = parser.parse_args()
@@ -54,21 +61,14 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer',
 
 # Model
 print('==> Building model..')
-# net = VGG('VGG19')
-# net = ResNet18()
-# net = PreActResNet18()
-# net = GoogLeNet()
-# net = DenseNet121()
-# net = ResNeXt29_2x64d()
-# net = MobileNet()
-# net = MobileNetV2()
-# net = DPN92()
-# net = ShuffleNetG2()
-# net = SENet18()
-# net = ShuffleNetV2(1)
-# net = EfficientNetB0()
-# net = RegNetX_200MF()
-net = SimpleDLA()
+
+
+models={'resnet18' : ResNet18(),
+    'resnet18_paraboloid' : ResNet18_paraboloid(),
+}
+
+net = models[args.model]
+
 net = net.to(device)
 if device == 'cuda':
     net = torch.nn.DataParallel(net)
@@ -78,7 +78,7 @@ if args.resume:
     # Load checkpoint.
     print('==> Resuming from checkpoint..')
     assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
-    checkpoint = torch.load('./checkpoint/ckpt.pth')
+    checkpoint = torch.load('./checkpoint/ckpt.pth', weights_only=True)
     net.load_state_dict(checkpoint['net'])
     best_acc = checkpoint['acc']
     start_epoch = checkpoint['epoch']
@@ -146,6 +146,16 @@ def test(epoch):
             os.mkdir('checkpoint')
         torch.save(state, './checkpoint/ckpt.pth')
         best_acc = acc
+
+
+if (args.eval):
+    print('==> Evaluating..')
+    assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
+    checkpoint = torch.load('./checkpoint/'+args.eval, weights_only=True)
+    net.load_state_dict(checkpoint['net'])
+    start_epoch = checkpoint['epoch']
+    test(start_epoch)
+    quit()
 
 
 for epoch in range(start_epoch, start_epoch+200):
